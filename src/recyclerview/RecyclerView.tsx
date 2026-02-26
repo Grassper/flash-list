@@ -49,9 +49,11 @@ import { useBoundDetection } from "./hooks/useBoundDetection";
 import { adjustOffsetForRTL } from "./utils/adjustOffsetForRTL";
 import { useSecondaryProps } from "./hooks/useSecondaryProps";
 import { StickyHeaders, StickyHeaderRef } from "./components/StickyHeaders";
+import { StickyFooters, StickyFooterRef } from "./components/StickyFooter";
 import { ScrollAnchor, ScrollAnchorRef } from "./components/ScrollAnchor";
 import { useRecyclerViewController } from "./hooks/useRecyclerViewController";
 import { RenderTimeTracker } from "./helpers/RenderTimeTracker";
+import { useEffect } from "react";
 
 /**
  * Main RecyclerView component that handles list rendering, scrolling, and item recycling.
@@ -59,7 +61,7 @@ import { RenderTimeTracker } from "./helpers/RenderTimeTracker";
  */
 const RecyclerViewComponent = <T,>(
   props: RecyclerViewProps<T>,
-  ref: React.Ref<FlashListRef<T>>
+  ref: React.Ref<FlashListRef<T>>,
 ) => {
   // Destructure props and initialize refs
   const {
@@ -82,6 +84,7 @@ const RecyclerViewComponent = <T,>(
     renderScrollComponent,
     style,
     stickyHeaderIndices,
+    stickyFooterIndices,
     maintainVisibleContentPosition,
     onCommitLayoutEffect,
     onChangeStickyIndex,
@@ -95,10 +98,13 @@ const RecyclerViewComponent = <T,>(
 
   // Sticky header config
   const stickyHeaderOffset = stickyHeaderConfig?.offset ?? 0;
-  const stickyHeaderUseNativeDriver =
-    stickyHeaderConfig?.useNativeDriver ?? true;
+  const useNativeDriver = true;
   const stickyHeaderHideRelatedCell =
     stickyHeaderConfig?.hideRelatedCell ?? false;
+
+  // Sticky footer config
+  const stickyFooterOffset = 0;
+  const stickyFooterHideRelatedCell = false;
 
   // Core refs for managing scroll view, internal view, and child container
   const scrollViewRef = useRef<CompatScroller>(null);
@@ -112,6 +118,7 @@ const RecyclerViewComponent = <T,>(
 
   // Refs for sticky headers and scroll anchoring
   const stickyHeaderRef = useRef<StickyHeaderRef>(null);
+  const stickyFooterRef = useRef<StickyFooterRef>(null);
   const scrollAnchorRef = useRef<ScrollAnchorRef>(null);
 
   // State for managing layout and render updates
@@ -122,7 +129,7 @@ const RecyclerViewComponent = <T,>(
   // Map to store refs for each item in the list
   const refHolder = useMemo(
     () => new Map<number, RefObject<CompatView | null>>(),
-    []
+    [],
   );
 
   // Initialize core RecyclerView manager and content offset management
@@ -137,7 +144,7 @@ const RecyclerViewComponent = <T,>(
     recyclerViewManager,
     ref,
     scrollViewRef,
-    scrollAnchorRef
+    scrollAnchorRef,
   );
 
   // Initialize view holder collection ref
@@ -161,7 +168,7 @@ const RecyclerViewComponent = <T,>(
       const outerViewLayout = measureParentSize(internalViewRef.current);
       const firstChildViewLayout = measureFirstChildLayout(
         firstChildViewRef.current,
-        internalViewRef.current
+        internalViewRef.current,
       );
 
       containerViewSizeRef.current = outerViewLayout;
@@ -184,7 +191,7 @@ const RecyclerViewComponent = <T,>(
         isHorizontalRTL && recyclerViewManager.hasLayout()
           ? firstItemOffset -
               recyclerViewManager.getChildContainerDimensions().width
-          : firstItemOffset
+          : firstItemOffset,
       );
     }
   });
@@ -201,7 +208,7 @@ const RecyclerViewComponent = <T,>(
     const layoutInfo = Array.from(refHolder, ([index, viewHolderRef]) => {
       const layout = measureItemLayout(
         viewHolderRef.current!,
-        recyclerViewManager.tryGetLayout(index)
+        recyclerViewManager.tryGetLayout(index),
       );
 
       // comapre height with stored layout
@@ -268,7 +275,7 @@ const RecyclerViewComponent = <T,>(
         scrollOffset = adjustOffsetForRTL(
           scrollOffset,
           event.nativeEvent.contentSize.width,
-          event.nativeEvent.layoutMeasurement.width
+          event.nativeEvent.layoutMeasurement.width,
         );
       }
 
@@ -292,11 +299,12 @@ const RecyclerViewComponent = <T,>(
           if (recyclerViewManager.updateScrollOffset(scrollOffset, velocity)) {
             setRenderId((prev) => prev + 1);
           }
-        }
+        },
       );
 
       // Update sticky headers and check bounds
       stickyHeaderRef.current?.reportScrollEvent(event.nativeEvent);
+      stickyFooterRef.current?.reportScrollEvent(event.nativeEvent);
       checkBounds();
 
       // Record interaction and compute item visibility
@@ -313,7 +321,7 @@ const RecyclerViewComponent = <T,>(
       isHorizontalRTL,
       recyclerViewManager,
       velocityTracker,
-    ]
+    ],
   );
 
   const parentRecyclerViewContext = useRecyclerViewContext();
@@ -366,11 +374,11 @@ const RecyclerViewComponent = <T,>(
       const layout = recyclerViewManager.getLayout(index);
       const width = Math.max(
         Math.min(layout.width, layout.maxWidth ?? Infinity),
-        layout.minWidth ?? 0
+        layout.minWidth ?? 0,
       );
       const height = Math.max(
         Math.min(layout.height, layout.maxHeight ?? Infinity),
-        layout.minHeight ?? 0
+        layout.minHeight ?? 0,
       );
       if (
         areDimensionsNotEqual(width, size.width) ||
@@ -388,7 +396,7 @@ const RecyclerViewComponent = <T,>(
         recyclerViewContext.layout();
       }
     },
-    [recyclerViewContext, recyclerViewManager]
+    [recyclerViewContext, recyclerViewManager],
   );
 
   // Get secondary props and components
@@ -454,19 +462,65 @@ const RecyclerViewComponent = <T,>(
     stickyHeaderHideRelatedCell,
   ]);
 
+  // Render sticky footer if configured
+  const stickyFooters = useMemo(() => {
+    if (
+      data &&
+      data.length > 0 &&
+      stickyFooterIndices &&
+      stickyFooterIndices.length > 0
+    ) {
+      if (horizontal) {
+        throw new Error(ErrorMessages.stickyFootersNotSupportedForHorizontal);
+      }
+
+      return (
+        <StickyFooters
+          stickyFooterIndices={stickyFooterIndices}
+          stickyFooterOffset={stickyFooterOffset}
+          data={data}
+          renderItem={renderItem}
+          scrollY={scrollY}
+          StickyFooterRef={stickyFooterRef}
+          recyclerViewManager={recyclerViewManager}
+          extraData={extraData}
+          onChangeStickyIndex={(newStickyFooterIndex) => {
+            if (stickyFooterHideRelatedCell) {
+              setCurrentStickyIndex(newStickyFooterIndex);
+            }
+            onChangeStickyIndex?.(newStickyFooterIndex, currentStickyIndex);
+          }}
+        />
+      );
+    }
+    return null;
+  }, [
+    data,
+    stickyFooterIndices,
+    stickyFooterOffset,
+    renderItem,
+    scrollY,
+    horizontal,
+    recyclerViewManager,
+    extraData,
+    currentStickyIndex,
+    onChangeStickyIndex,
+    stickyFooterHideRelatedCell,
+  ]);
+
   // Set up scroll event handling with animation support for sticky headers
   const animatedEvent = useMemo(() => {
-    if (stickyHeaders) {
+    if (stickyHeaders || stickyFooters) {
       return Animated.event(
         [{ nativeEvent: { contentOffset: { y: scrollY } } }],
         {
-          useNativeDriver: stickyHeaderUseNativeDriver,
+          useNativeDriver: useNativeDriver,
           listener: onScrollHandler,
-        }
+        },
       );
     }
     return onScrollHandler;
-  }, [onScrollHandler, scrollY, stickyHeaders, stickyHeaderUseNativeDriver]);
+  }, [onScrollHandler, scrollY, stickyHeaders, stickyFooters, useNativeDriver]);
 
   const shouldMaintainVisibleContentPosition =
     recyclerViewManager.shouldMaintainVisibleContentPosition();
@@ -493,6 +547,8 @@ const RecyclerViewComponent = <T,>(
           marginTop: horizontal ? undefined : stickyHeaderOffset,
           height: horizontal ? undefined : 0,
           width: horizontal ? 0 : undefined,
+          // [rev-marker-flashlist]
+          marginBottom: horizontal ? undefined : stickyFooterOffset,
         }}
         ref={firstChildViewRef}
       />
@@ -530,11 +586,11 @@ const RecyclerViewComponent = <T,>(
           if (
             areDimensionsNotEqual(
               event.nativeEvent.layout.width,
-              containerViewSizeRef.current?.width ?? 0
+              containerViewSizeRef.current?.width ?? 0,
             ) ||
             areDimensionsNotEqual(
               event.nativeEvent.layout.height,
-              containerViewSizeRef.current?.height ?? 0
+              containerViewSizeRef.current?.height ?? 0,
             )
           ) {
             // console.log(
@@ -586,7 +642,7 @@ const RecyclerViewComponent = <T,>(
                 0,
                 windowSize -
                   childContainerSize -
-                  recyclerViewManager.firstItemOffset
+                  recyclerViewManager.firstItemOffset,
               );
             }}
             refHolder={refHolder}
@@ -596,14 +652,14 @@ const RecyclerViewComponent = <T,>(
             onCommitLayoutEffect={() => {
               applyInitialScrollIndex();
               parentRecyclerViewContext?.unmarkChildLayoutAsPending(
-                recyclerViewId
+                recyclerViewId,
               );
               onCommitLayoutEffect?.();
             }}
             onCommitEffect={() => {
               renderTimeTracker.markRenderComplete();
               recyclerViewManager.updateAverageRenderTime(
-                renderTimeTracker.getAverageRenderTime()
+                renderTimeTracker.getAverageRenderTime(),
               );
               applyInitialScrollIndex();
               checkBounds();
@@ -627,6 +683,7 @@ const RecyclerViewComponent = <T,>(
           ? renderStickyHeaderBackdrop
           : null}
         {stickyHeaders}
+        {stickyFooters}
       </CompatView>
     </RecyclerViewContextProvider>
   );
@@ -637,12 +694,12 @@ RecyclerViewComponent.displayName = "FlashList";
 
 // Type definition for the RecyclerView component
 type RecyclerViewType = <T>(
-  props: RecyclerViewProps<T> & { ref?: React.Ref<FlashListRef<T>> }
+  props: RecyclerViewProps<T> & { ref?: React.Ref<FlashListRef<T>> },
 ) => React.JSX.Element;
 
 // Create and export the memoized, forwarded ref component
 const RecyclerView = React.memo(
-  forwardRef(RecyclerViewComponent)
+  forwardRef(RecyclerViewComponent),
 ) as RecyclerViewType;
 
 export { RecyclerView };

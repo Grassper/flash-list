@@ -27,16 +27,21 @@ export interface OverrideProps {
   [key: string]: any;
 }
 
-export type RenderTarget = "Cell" | "StickyHeader" | "Measurement";
+export type RenderTarget =
+  | "Cell"
+  | "StickyHeader"
+  | "Measurement"
+  | "StickyFooter";
 
 export const RenderTargetOptions: Record<string, RenderTarget> = {
   Cell: "Cell",
   StickyHeader: "StickyHeader",
+  StickyFooter: "StickyFooter",
   Measurement: "Measurement",
 };
 
 export type ListRenderItem<TItem> = (
-  info: ListRenderItemInfo<TItem>
+  info: ListRenderItemInfo<TItem>,
 ) => React.ReactElement | null;
 
 export interface ViewabilityConfigCallbackPair<TItem> {
@@ -52,8 +57,10 @@ export interface ViewabilityConfigCallbackPair<TItem> {
 export type ViewabilityConfigCallbackPairs<TItem> =
   ViewabilityConfigCallbackPair<TItem>[];
 
-export interface FlashListProps<TItem>
-  extends Omit<ScrollViewProps, "maintainVisibleContentPosition"> {
+export interface FlashListProps<TItem> extends Omit<
+  ScrollViewProps,
+  "maintainVisibleContentPosition"
+> {
   /**
    * Takes an item from `data` and renders it into the list. Typical usage:
    * ```ts
@@ -238,7 +245,7 @@ export interface FlashListProps<TItem>
   getItemType?: (
     item: TItem,
     index: number,
-    extraData?: any
+    extraData?: any,
   ) => string | number | undefined;
 
   /**
@@ -254,7 +261,7 @@ export interface FlashListProps<TItem>
     item: TItem,
     index: number,
     maxColumns: number,
-    extraData?: any
+    extraData?: any,
   ) => void;
 
   /**
@@ -408,4 +415,6 @@ export interface FlashListProps<TItem>
         hideRelatedCell?: boolean;
       }
     | undefined;
+
+  stickyFooterIndices?: number[];
 }
