@@ -138,6 +138,14 @@ Rendered when the list is empty. Can be a React Component (e.g. `SomeComponent`)
 ListEmptyComponent?: React.ComponentType<any> | React.ReactElement<any, string | React.JSXElementConstructor<any>>;
 ```
 
+### `ListEmptyComponentStyle`
+
+Styling for internal View for `ListEmptyComponent`.
+
+```tsx
+ListEmptyComponentStyle?: StyleProp<ViewStyle>;
+```
+
 ### `ListFooterComponent`
 
 Rendered at the bottom of all the items. Can be a React Component (e.g. `SomeComponent`), or a React element (e.g. `<SomeComponent />`).
@@ -212,6 +220,20 @@ If `true`, renders items next to each other horizontally instead of stacked vert
 
 ```tsx
 horizontal?: boolean;
+```
+
+### `inverted`
+
+Reverses the direction of the list. Uses CSS transforms (`scaleY(-1)` on iOS/web, `rotate(180deg)` on Android) to flip the list and its contents.
+
+Useful for chat-like interfaces where the newest content appears at the bottom.
+
+:::note
+On Android, a rotate transform is used instead of scale for performance reasons. This causes the scrollbar to appear on the left side of the list.
+:::
+
+```tsx
+inverted?: boolean;
 ```
 
 ### `initialScrollIndex`
@@ -310,6 +332,7 @@ stickyHeaderConfig?: {
   useNativeDriver?: boolean;
   offset?: number;
   backdropComponent?: React.ComponentType<any> | React.ReactElement | null;
+  zIndex?: number;
   hideRelatedCell?: boolean;
 };
 ```
@@ -343,6 +366,14 @@ Useful for creating visual separation or effects like backgrounds with blur.
 backdropComponent?: React.ComponentType<any> | React.ReactElement | null;
 ```
 
+#### `zIndex`
+
+zIndex applied to the sticky header container. Default is `2`.
+
+```tsx
+zIndex?: number;
+```
+
 #### `hideRelatedCell`
 
 When a sticky header is displayed, the cell associated with it is hidden.
@@ -362,6 +393,7 @@ hideRelatedCell?: boolean;
     useNativeDriver: true,
     offset: 50, // Headers stick 50px from top
     backdropComponent: <BlurView style={StyleSheet.absoluteFill} />,
+    zIndex: 3,
     hideRelatedCell: true,
   }}
   renderItem={({ item }) => <ListItem item={item} />}
@@ -569,7 +601,20 @@ This method is called very frequently. Keep it fast.
 overrideProps?: object;
 ```
 
-We do not recommend using this prop for anything else than debugging. Internal props of the list will be overriden with the provided values.
+Allows overriding internal ScrollView props. Props provided here are spread onto the internal ScrollView after all other props, so they take highest priority.
+
+This can be useful for cases where you need to set a style on the ScrollView itself rather than the outer container. For example, to enable visible overflow:
+
+```tsx
+<FlashList
+  style={{ overflow: "visible" }}
+  overrideProps={{ style: { overflow: "visible" } }}
+/>
+```
+
+:::caution
+Use with caution — overriding internal props may interfere with FlashList's layout and recycling behavior.
+:::
 
 ### `progressViewOffset`
 
