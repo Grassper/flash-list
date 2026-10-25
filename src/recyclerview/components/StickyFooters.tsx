@@ -79,7 +79,7 @@ export const StickyFooters = <TItem,>({
   const [stickyFooterState, setStickyFooterState] = useState<StickyFooterState>(
     {
       currentStickyIndex: -1,
-      pushStartsAt: Number.MAX_SAFE_INTEGER,
+      pushStartsAt: Number.MIN_SAFE_INTEGER,
     }
   );
 
@@ -115,36 +115,36 @@ export const StickyFooters = <TItem,>({
     );
 
     const newStickyIndex = sortedIndices[currentIndexInArray] ?? -1;
-    let newNextStickyIndex = sortedIndices[currentIndexInArray - 1] ?? -1;
+    let newPrevStickyIndex = sortedIndices[currentIndexInArray - 1] ?? -1;
 
     // Only push when the previous footer is rendered, otherwise its layout may be an estimate
     if (
-      newNextStickyIndex < recyclerViewManager.getEngagedIndices().startIndex
+      newPrevStickyIndex < recyclerViewManager.getEngagedIndices().startIndex
     ) {
-      newNextStickyIndex = -1;
+      newPrevStickyIndex = -1;
     }
 
     const newCurrentStickyHeight =
       recyclerViewManager.tryGetLayout(newStickyIndex)?.height ?? 0;
 
     // Calculate when the previous sticky footer should start pushing the current one down
-    const newNextStickyY =
-      newNextStickyIndex === -1
+    const newPrevStickyY =
+      newPrevStickyIndex === -1
         ? Number.MIN_SAFE_INTEGER
-        : (recyclerViewManager.tryGetLayout(newNextStickyIndex)?.y ?? 0) +
+        : (recyclerViewManager.tryGetLayout(newPrevStickyIndex)?.y ?? 0) +
           recyclerViewManager.firstItemOffset;
 
     const prevHeight =
-      newNextStickyIndex === -1
+      newPrevStickyIndex === -1
         ? 0
-        : recyclerViewManager.tryGetLayout(newNextStickyIndex)?.height ?? 0;
+        : recyclerViewManager.tryGetLayout(newPrevStickyIndex)?.height ?? 0;
 
     // bottom of previous footer (content space)
-    const prevBottom = newNextStickyY + prevHeight;
+    const prevBottom = newPrevStickyY + prevHeight;
 
     // push must start when prevBottom reaches top of sticky footer area
     const newPushStartsAt =
-      newNextStickyIndex === -1
+      newPrevStickyIndex === -1
         ? Number.MIN_SAFE_INTEGER
         : prevBottom -
           (windowSize.height - stickyFooterOffset - newCurrentStickyHeight);

@@ -488,6 +488,9 @@ export interface FlashListProps<TItem>
    */
   onChangeStickyFooterIndex?: (current: number, previous: number) => void;
 
+  /**
+   * Configuration object for sticky footer behavior and appearance. All properties are optional.
+   */
   stickyFooterConfig?:
     | {
         /**

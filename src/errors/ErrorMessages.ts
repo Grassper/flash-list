@@ -24,5 +24,5 @@ export const ErrorMessages = {
   stickyHeadersNotSupportedForHorizontal:
     "Sticky headers are not supported when list is horizontal",
   stickyFootersNotSupportedForHorizontal:
-    "Sticky Footers are not supported when list is horizontal",
+    "Sticky footers are not supported when list is horizontal",
 };

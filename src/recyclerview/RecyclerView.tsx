@@ -50,7 +50,7 @@ import { adjustOffsetForRTL } from "./utils/adjustOffsetForRTL";
 import { useSecondaryProps } from "./hooks/useSecondaryProps";
 import { getInvertedTransformStyle } from "./utils/getInvertedTransformStyle";
 import { StickyHeaders, StickyHeaderRef } from "./components/StickyHeaders";
-import { StickyFooters, StickyFooterRef } from "./components/StickyFooter";
+import { StickyFooters, StickyFooterRef } from "./components/StickyFooters";
 import { ScrollAnchor, ScrollAnchorRef } from "./components/ScrollAnchor";
 import { useRecyclerViewController } from "./hooks/useRecyclerViewController";
 import { RenderTimeTracker } from "./helpers/RenderTimeTracker";

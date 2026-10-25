@@ -6,7 +6,7 @@ import { render } from "@quilted/react-testing";
 import {
   StickyFooters,
   StickyFooterRef,
-} from "../recyclerview/components/StickyFooter";
+} from "../recyclerview/components/StickyFooters";
 import { RecyclerViewManager } from "../recyclerview/RecyclerViewManager";
 import { RVLayout } from "../recyclerview/layout-managers/LayoutManager";
 import { ViewHolder } from "../recyclerview/ViewHolder";
