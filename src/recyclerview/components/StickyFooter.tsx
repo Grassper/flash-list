@@ -1,7 +1,7 @@
 /**
- * StickyHeaders component manages the sticky header behavior in a FlashList.
- * It handles the animation and positioning of headers that should remain fixed
- * at the top of the list while scrolling.
+ * StickyFooters component manages the sticky footer behavior in a FlashList.
+ * It handles the animation and positioning of footers that should remain fixed
+ * at the bottom of the list while scrolling.
  */
 
 import React, {
@@ -18,27 +18,26 @@ import { FlashListProps } from "../..";
 import { PlatformConfig } from "../../native/config/PlatformHelper";
 import { RecyclerViewManager } from "../RecyclerViewManager";
 import { ViewHolder } from "../ViewHolder";
+
 import { CompatAnimatedView } from "./CompatView";
 
 /**
- * Props for the StickyHeaders component
+ * Props for the StickyFooters component
  * @template TItem - The type of items in the list
  */
 export interface StickyFooterProps<TItem> {
   /** Array of indices that should have sticky footers */
   stickyFooterIndices: number[];
-  /** Offset from the top where sticky footer should stick (in pixels) */
+  /** Offset from the bottom where sticky footer should stick (in pixels) */
   stickyFooterOffset: number;
-  /** Sticky footer change handler */
-  onChangeStickyIndex: (index: number) => void;
   /** The data array being rendered */
   data: ReadonlyArray<TItem>;
   /** Animated value tracking scroll position */
   scrollY: Animated.Value;
   /** Function to render each item */
   renderItem: FlashListProps<TItem>["renderItem"];
-  /** Ref to access sticky header methods */
-  StickyFooterRef: React.RefObject<StickyFooterRef>;
+  /** Ref to access sticky footer methods */
+  stickyFooterRef: React.RefObject<StickyFooterRef>;
   /** Manager for recycler view operations */
   recyclerViewManager: RecyclerViewManager<TItem>;
   /** Additional data to trigger re-renders */
@@ -46,14 +45,14 @@ export interface StickyFooterProps<TItem> {
 }
 
 /**
- * Ref interface for StickyHeaders component
+ * Ref interface for StickyFooters component
  */
 export interface StickyFooterRef {
-  /** Reports scroll events to update sticky header positions */
+  /** Reports scroll events to update sticky footer positions */
   reportScrollEvent: (event: NativeScrollEvent) => void;
 }
 
-interface StickyHeaderState {
+interface StickyFooterState {
   currentStickyIndex: number;
   pushStartsAt: number;
 }
@@ -62,18 +61,17 @@ export const StickyFooters = <TItem,>({
   stickyFooterIndices,
   stickyFooterOffset,
   renderItem,
-  StickyFooterRef,
+  stickyFooterRef,
   recyclerViewManager,
   scrollY,
   data,
   extraData,
-  onChangeStickyIndex,
 }: StickyFooterProps<TItem>) => {
-  const [stickyFooterState, setStickyFooterState] = useState<StickyHeaderState>(
+  const [stickyFooterState, setStickyFooterState] = useState<StickyFooterState>(
     {
       currentStickyIndex: -1,
       pushStartsAt: Number.MAX_SAFE_INTEGER,
-    },
+    }
   );
 
   const { currentStickyIndex, pushStartsAt } = stickyFooterState;
@@ -93,7 +91,8 @@ export const StickyFooters = <TItem,>({
       return;
     }
 
-    // will this add padding bottom to the recyclerview.
+    // Scroll offset relative to the item container (firstItemOffset already subtracted),
+    // so it is compared against layout y values without adding firstItemOffset back.
     const adjustedScrollOffset = recyclerViewManager.getLastScrollOffset();
     const windowSize = recyclerViewManager.getWindowSize();
     const bottomLine =
@@ -101,19 +100,15 @@ export const StickyFooters = <TItem,>({
     // Binary search for current sticky index
     const currentIndexInArray = findCurrentStickyIndex(
       sortedIndices,
-      // [rev-marker-flashlist] is minus-ing stickyFooterOffset is right here. considering
-      // offset is zero for both header & footer.
       bottomLine,
-      (index) =>
-        recyclerViewManager.getLayout(index).y +
-        recyclerViewManager.firstItemOffset,
-      (index) => recyclerViewManager.getLayout(index).height,
+      (index) => recyclerViewManager.getLayout(index).y,
+      (index) => recyclerViewManager.getLayout(index).height
     );
 
     const newStickyIndex = sortedIndices[currentIndexInArray] ?? -1;
     let newNextStickyIndex = sortedIndices[currentIndexInArray - 1] ?? -1;
 
-    // [rev-marker-flashlist] what is purpose of this
+    // Only push when the previous footer is rendered, otherwise its layout may be an estimate
     if (
       newNextStickyIndex < recyclerViewManager.getEngagedIndices().startIndex
     ) {
@@ -123,20 +118,17 @@ export const StickyFooters = <TItem,>({
     const newCurrentStickyHeight =
       recyclerViewManager.tryGetLayout(newStickyIndex)?.height ?? 0;
 
-    // Calculate when the next sticky footer should start pushing the current one
-    // The next footer starts pushing when it reaches the top of the current sticky footer
+    // Calculate when the previous sticky footer should start pushing the current one down
     const newNextStickyY =
       newNextStickyIndex === -1
         ? Number.MIN_SAFE_INTEGER
         : (recyclerViewManager.tryGetLayout(newNextStickyIndex)?.y ?? 0) +
           recyclerViewManager.firstItemOffset;
 
-    // Push should start when the next footer reaches the top of the current sticky footer.
-    // [rev-marker-flashlist] it is confusing have to verify
     const prevHeight =
       newNextStickyIndex === -1
         ? 0
-        : (recyclerViewManager.tryGetLayout(newNextStickyIndex)?.height ?? 0);
+        : recyclerViewManager.tryGetLayout(newNextStickyIndex)?.height ?? 0;
 
     // bottom of previous footer (content space)
     const prevBottom = newNextStickyY + prevHeight;
@@ -148,24 +140,14 @@ export const StickyFooters = <TItem,>({
         : prevBottom -
           (windowSize.height - stickyFooterOffset - newCurrentStickyHeight);
 
-    console.log("[Marker flashlist] footer", {
-      newPushStartsAt,
-      stickyFooterState,
-    });
-
     if (
       newStickyIndex !== currentStickyIndex ||
       newPushStartsAt !== pushStartsAt
     ) {
       setStickyFooterState({
         currentStickyIndex: newStickyIndex,
-        // [rev-marker-flashlist] it is confusing have to verify
         pushStartsAt: newPushStartsAt,
       });
-    }
-
-    if (newStickyIndex !== currentStickyIndex) {
-      onChangeStickyIndex?.(newStickyIndex);
     }
   }, [
     lengthInvalid,
@@ -173,7 +155,6 @@ export const StickyFooters = <TItem,>({
     sortedIndices,
     currentStickyIndex,
     pushStartsAt,
-    onChangeStickyIndex,
     stickyFooterOffset,
   ]);
 
@@ -183,13 +164,13 @@ export const StickyFooters = <TItem,>({
 
   // Optimized scroll handler using binary search pattern
   useImperativeHandle(
-    StickyFooterRef,
+    stickyFooterRef,
     () => ({
       reportScrollEvent: () => {
         compute();
       },
     }),
-    [compute],
+    [compute]
   );
 
   const refHolder = useRef(new Map()).current;
@@ -205,7 +186,6 @@ export const StickyFooters = <TItem,>({
         extrapolate: "clamp",
       }),
       opacity:
-        // this looks off need to check [rev-marker-flashlist]
         stickyFooterOffset > 0
           ? scrollY.interpolate({
               inputRange: [pushStartsAt - currentStickyHeight, pushStartsAt],
@@ -222,12 +202,7 @@ export const StickyFooters = <TItem,>({
     stickyFooterOffset,
   ]);
 
-  //   console.log(
-  //     "[Marker flashlist] footer currentStickyIndex",
-  //     currentStickyIndex,
-  //   );
-
-  // Memoize header content
+  // Memoize footer content
   const footerContent = useMemo(() => {
     return (
       <CompatAnimatedView
@@ -250,7 +225,7 @@ export const StickyFooters = <TItem,>({
             refHolder={refHolder}
             extraData={extraData}
             trailingItem={null}
-            target="StickyHeader"
+            target="StickyFooter"
             hidden={false}
           />
         ) : null}
@@ -277,15 +252,16 @@ export const StickyFooters = <TItem,>({
 /**
  * Binary search utility to find the current sticky footer index based on scroll position
  * @param sortedIndices - Array of indices sorted by Y position
- * @param adjustedValue - Current scroll position
+ * @param adjustedValue - Bottom edge of the sticky footer area in content coordinates
  * @param getY - Function to get Y position for an index
- * @returns Index of the current sticky header
+ * @param getHeight - Function to get height for an index
+ * @returns Index of the current sticky footer
  */
 function findCurrentStickyIndex(
   sortedIndices: number[],
   adjustedValue: number,
   getY: (index: number) => number,
-  getHeight: (index: number) => number,
+  getHeight: (index: number) => number
 ): number {
   let left = 0;
   let right = sortedIndices.length - 1;

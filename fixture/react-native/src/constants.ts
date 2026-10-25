@@ -39,6 +39,7 @@ export type RootStackParamList = {
   ManualBenchmarkExample: undefined;
   ManualFlatListBenchmarkExample: undefined;
   StickyHeaderExample: undefined;
+  StickyFooterExample: undefined;
   GridWithSeparator: undefined;
   HorizontalMVCP: undefined;
 };

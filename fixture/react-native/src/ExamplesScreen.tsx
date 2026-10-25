@@ -28,6 +28,7 @@ export const ExamplesScreen = () => {
 
   const data: ExampleItem[] = [
     { title: "Sticky Header Example", destination: "StickyHeaderExample" },
+    { title: "Sticky Footer Example", destination: "StickyFooterExample" },
     { title: "Horizontal List", destination: "HorizontalList" },
     { title: "Carousel", destination: "Carousel" },
     { title: "Grid", destination: "Grid" },

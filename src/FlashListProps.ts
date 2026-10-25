@@ -41,7 +41,7 @@ export const RenderTargetOptions: Record<string, RenderTarget> = {
 };
 
 export type ListRenderItem<TItem> = (
-  info: ListRenderItemInfo<TItem>,
+  info: ListRenderItemInfo<TItem>
 ) => React.ReactElement | null;
 
 export interface ViewabilityConfigCallbackPair<TItem> {
@@ -57,10 +57,8 @@ export interface ViewabilityConfigCallbackPair<TItem> {
 export type ViewabilityConfigCallbackPairs<TItem> =
   ViewabilityConfigCallbackPair<TItem>[];
 
-export interface FlashListProps<TItem> extends Omit<
-  ScrollViewProps,
-  "maintainVisibleContentPosition"
-> {
+export interface FlashListProps<TItem>
+  extends Omit<ScrollViewProps, "maintainVisibleContentPosition"> {
   /**
    * Takes an item from `data` and renders it into the list. Typical usage:
    * ```ts
@@ -269,7 +267,7 @@ export interface FlashListProps<TItem> extends Omit<
   getItemType?: (
     item: TItem,
     index: number,
-    extraData?: any,
+    extraData?: any
   ) => string | number | undefined;
 
   /**
@@ -285,7 +283,7 @@ export interface FlashListProps<TItem> extends Omit<
     item: TItem,
     index: number,
     maxColumns: number,
-    extraData?: any,
+    extraData?: any
   ) => void;
 
   /**
@@ -472,5 +470,12 @@ export interface FlashListProps<TItem> extends Omit<
       }
     | undefined;
 
+  /**
+   * An array of item indices determining which items get docked to the
+   * bottom of the list while they are below the visible area. For example,
+   * passing `stickyFooterIndices={[9]}` keeps item 9 fixed to the bottom of
+   * the list until it scrolls into view. This property is not supported in
+   * conjunction with `horizontal={true}`.
+   */
   stickyFooterIndices?: number[];
 }
