@@ -85,6 +85,8 @@ const RecyclerViewComponent = <T,>(
     style,
     stickyHeaderIndices,
     stickyFooterIndices,
+    stickyFooterConfig,
+    onChangeStickyFooterIndex,
     maintainVisibleContentPosition,
     onCommitLayoutEffect,
     onChangeStickyIndex,
@@ -111,7 +113,12 @@ const RecyclerViewComponent = <T,>(
     : undefined;
 
   // Sticky footer config
-  const stickyFooterOffset = 0;
+  const stickyFooterOffset = stickyFooterConfig?.offset ?? 0;
+  const stickyFooterUseNativeDriver =
+    stickyFooterConfig?.useNativeDriver ?? true;
+  const stickyFooterHideRelatedCell =
+    stickyFooterConfig?.hideRelatedCell ?? false;
+  const stickyFooterZIndex = stickyFooterConfig?.zIndex ?? 2;
 
   // Core refs for managing scroll view, internal view, and child container
   const scrollViewRef = useRef<CompatScroller>(null);
@@ -132,6 +139,7 @@ const RecyclerViewComponent = <T,>(
   const [_, setLayoutTreeId] = useLayoutState(0);
   const [__, setRenderId] = useState(0);
   const [currentStickyIndex, setCurrentStickyIndex] = useState(-1);
+  const [currentStickyFooterIndex, setCurrentStickyFooterIndex] = useState(-1);
 
   // Map to store refs for each item in the list
   const refHolder = useMemo(
@@ -417,6 +425,7 @@ const RecyclerViewComponent = <T,>(
     renderEmpty,
     CompatScrollView,
     renderStickyHeaderBackdrop,
+    renderStickyFooterBackdrop,
   } = useSecondaryProps(props);
 
   if (
@@ -496,8 +505,16 @@ const RecyclerViewComponent = <T,>(
           renderItem={renderItem}
           scrollY={scrollY}
           stickyFooterRef={stickyFooterRef}
+          stickyFooterZIndex={stickyFooterZIndex}
           recyclerViewManager={recyclerViewManager}
           extraData={extraData}
+          inverted={inverted}
+          onChangeStickyIndex={(current, previous) => {
+            if (stickyFooterHideRelatedCell) {
+              setCurrentStickyFooterIndex(current);
+            }
+            onChangeStickyFooterIndex?.(current, previous);
+          }}
         />
       );
     }
@@ -511,15 +528,23 @@ const RecyclerViewComponent = <T,>(
     horizontal,
     recyclerViewManager,
     extraData,
+    onChangeStickyFooterIndex,
+    stickyFooterHideRelatedCell,
+    stickyFooterZIndex,
+    inverted,
   ]);
 
-  // Set up scroll event handling with animation support for sticky headers
+  // Set up scroll event handling with animation support for sticky headers and footers
   const animatedEvent = useMemo(() => {
     if (stickyHeaders || stickyFooters) {
+      // Headers and footers share scrollY, so the native driver is used only if all of them allow it
+      const useNativeDriver =
+        (!stickyHeaders || stickyHeaderUseNativeDriver) &&
+        (!stickyFooters || stickyFooterUseNativeDriver);
       return Animated.event(
         [{ nativeEvent: { contentOffset: { y: scrollY } } }],
         {
-          useNativeDriver: stickyHeaderUseNativeDriver,
+          useNativeDriver,
           listener: onScrollHandler,
         }
       );
@@ -531,6 +556,7 @@ const RecyclerViewComponent = <T,>(
     stickyHeaders,
     stickyFooters,
     stickyHeaderUseNativeDriver,
+    stickyFooterUseNativeDriver,
   ]);
 
   const shouldMaintainVisibleContentPosition =
@@ -558,7 +584,6 @@ const RecyclerViewComponent = <T,>(
           marginTop: horizontal ? undefined : stickyHeaderOffset,
           height: horizontal ? undefined : 0,
           width: horizontal ? 0 : undefined,
-          marginBottom: horizontal ? undefined : stickyFooterOffset,
         }}
         ref={firstChildViewRef}
       />
@@ -576,6 +601,14 @@ const RecyclerViewComponent = <T,>(
     }
     return null;
   }, [horizontal, shouldMaintainVisibleContentPosition]);
+
+  // Space after the content so the last items can scroll above the sticky footer offset
+  const stickyFooterOffsetSpacer = useMemo(() => {
+    if (horizontal || stickyFooterOffset <= 0) {
+      return null;
+    }
+    return <CompatView style={{ height: stickyFooterOffset }} />;
+  }, [horizontal, stickyFooterOffset]);
 
   // console.log("render", recyclerViewManager.getRenderStack());
 
@@ -688,15 +721,21 @@ const RecyclerViewComponent = <T,>(
             }
             currentStickyIndex={currentStickyIndex}
             hideStickyHeaderRelatedCell={stickyHeaderHideRelatedCell}
+            currentStickyFooterIndex={currentStickyFooterIndex}
+            hideStickyFooterRelatedCell={stickyFooterHideRelatedCell}
             inverted={inverted}
           />
           {renderEmpty}
           {renderFooter}
+          {stickyFooterOffsetSpacer}
         </CompatScrollView>
         {stickyHeaderIndices && stickyHeaderIndices.length > 0
           ? renderStickyHeaderBackdrop
           : null}
         {stickyHeaders}
+        {stickyFooterIndices && stickyFooterIndices.length > 0
+          ? renderStickyFooterBackdrop
+          : null}
         {stickyFooters}
       </CompatView>
     </RecyclerViewContextProvider>

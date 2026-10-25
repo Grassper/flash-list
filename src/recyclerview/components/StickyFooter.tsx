@@ -42,6 +42,12 @@ export interface StickyFooterProps<TItem> {
   recyclerViewManager: RecyclerViewManager<TItem>;
   /** Additional data to trigger re-renders */
   extraData: FlashListProps<TItem>["extraData"];
+  /** Called with the current and previous index when the sticky footer changes */
+  onChangeStickyIndex?: (current: number, previous: number) => void;
+  /** Whether the list is inverted */
+  inverted?: FlashListProps<TItem>["inverted"];
+  /** zIndex applied to the sticky footer container */
+  stickyFooterZIndex?: number;
 }
 
 /**
@@ -66,6 +72,9 @@ export const StickyFooters = <TItem,>({
   scrollY,
   data,
   extraData,
+  onChangeStickyIndex,
+  inverted,
+  stickyFooterZIndex = 2,
 }: StickyFooterProps<TItem>) => {
   const [stickyFooterState, setStickyFooterState] = useState<StickyFooterState>(
     {
@@ -149,12 +158,17 @@ export const StickyFooters = <TItem,>({
         pushStartsAt: newPushStartsAt,
       });
     }
+
+    if (newStickyIndex !== currentStickyIndex) {
+      onChangeStickyIndex?.(newStickyIndex, currentStickyIndex);
+    }
   }, [
     lengthInvalid,
     recyclerViewManager,
     sortedIndices,
     currentStickyIndex,
     pushStartsAt,
+    onChangeStickyIndex,
     stickyFooterOffset,
   ]);
 
@@ -211,7 +225,7 @@ export const StickyFooters = <TItem,>({
           bottom: stickyFooterOffset,
           left: 0,
           right: 0,
-          zIndex: 2,
+          zIndex: stickyFooterZIndex,
           transform: [{ translateY }],
           opacity,
         }}
@@ -227,6 +241,7 @@ export const StickyFooters = <TItem,>({
             trailingItem={null}
             target="StickyFooter"
             hidden={false}
+            inverted={inverted}
           />
         ) : null}
       </CompatAnimatedView>
@@ -240,6 +255,8 @@ export const StickyFooters = <TItem,>({
     refHolder,
     extraData,
     stickyFooterOffset,
+    stickyFooterZIndex,
+    inverted,
   ]);
 
   if (PlatformConfig.isRN083OrAbove && currentStickyIndex === -1) {

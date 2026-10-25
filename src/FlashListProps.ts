@@ -16,6 +16,7 @@ export interface ListRenderItemInfo<TItem> {
    * Cell - This is for your list item
    * Measurement - Might be invoked for size measurement and won't be visible. You can ignore this in analytics.
    * StickyHeader - This is for your sticky header. Use this to change your item's appearance while it's being used as a sticky header.
+   * StickyFooter - This is for your sticky footer. Use this to change your item's appearance while it's being used as a sticky footer.
    */
   target: RenderTarget;
   extraData?: any;
@@ -478,4 +479,57 @@ export interface FlashListProps<TItem>
    * conjunction with `horizontal={true}`.
    */
   stickyFooterIndices?: number[];
+
+  /**
+   * Callback invoked when the currently displayed sticky footer changes.
+   * Receives the current sticky footer index and the previous sticky footer index.
+   * The index refers to the position of the item in your data array that's being used as a sticky footer.
+   * `-1` means no sticky footer is displayed.
+   */
+  onChangeStickyFooterIndex?: (current: number, previous: number) => void;
+
+  stickyFooterConfig?:
+    | {
+        /**
+         * If true, the sticky footers will use native driver for animations.
+         * Sticky headers and footers share the same scroll animation, so the native driver
+         * is only used when it is enabled for both.
+         * @default true
+         */
+        useNativeDriver?: boolean;
+
+        /**
+         * Offset from the bottom of the list where sticky footers should stick.
+         * This is useful when you have a fixed tab bar or toolbar at the bottom of your screen
+         * and want sticky footers to appear above it instead of at the very bottom.
+         * The same amount of space is added after the list content so the last items can scroll above it.
+         * @default 0
+         */
+        offset?: number;
+
+        /**
+         * Component to render behind sticky footers (e.g., a backdrop or blur effect).
+         * Renders in front of the scroll view content but behind the sticky footer itself,
+         * aligned to the bottom of the list.
+         */
+        backdropComponent?:
+          | React.ComponentType<any>
+          | React.ExoticComponent<any>
+          | React.ReactElement
+          | null
+          | undefined;
+
+        /**
+         * zIndex applied to the sticky footer container.
+         * @default 2
+         */
+        zIndex?: number;
+
+        /**
+         * When a sticky footer is displayed, the cell associated with it is hidden.
+         * @default false
+         */
+        hideRelatedCell?: boolean;
+      }
+    | undefined;
 }

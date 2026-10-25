@@ -66,12 +66,18 @@ describe("StickyFooters - Compute Function", () => {
     stickyFooterOffset = 0,
     scrollY = new Animated.Value(0),
     ref = createRef<StickyFooterRef>(),
+    onChangeStickyIndex,
+    stickyFooterZIndex,
+    inverted,
   }: {
     manager: RecyclerViewManager<any>;
     stickyFooterIndices?: number[];
     stickyFooterOffset?: number;
     scrollY?: Animated.Value;
     ref?: React.RefObject<StickyFooterRef>;
+    onChangeStickyIndex?: (current: number, previous: number) => void;
+    stickyFooterZIndex?: number;
+    inverted?: boolean;
   }) =>
     render(
       <StickyFooters
@@ -83,6 +89,9 @@ describe("StickyFooters - Compute Function", () => {
         stickyFooterRef={ref}
         recyclerViewManager={manager}
         extraData={undefined}
+        onChangeStickyIndex={onChangeStickyIndex}
+        stickyFooterZIndex={stickyFooterZIndex}
+        inverted={inverted}
       />
     );
 
@@ -212,6 +221,48 @@ describe("StickyFooters - Compute Function", () => {
     });
   });
 
+  describe("Callback Invocation on Index Changes", () => {
+    it("should report the current and previous index as the list scrolls", () => {
+      const onChangeStickyIndex = jest.fn();
+      const ref = createRef<StickyFooterRef>();
+      const manager = createMockRecyclerViewManager({
+        scrollOffset: 0,
+        layouts: createStandardLayouts(),
+      });
+
+      const result = renderStickyFooters({ manager, ref, onChangeStickyIndex });
+      expect(onChangeStickyIndex).toHaveBeenNthCalledWith(1, 9, -1);
+
+      manager.getLastScrollOffset = jest.fn(() => 700);
+      result.act(() => ref.current?.reportScrollEvent({} as any));
+      expect(onChangeStickyIndex).toHaveBeenNthCalledWith(2, 29, 9);
+
+      // All footers visible
+      manager.getLastScrollOffset = jest.fn(() => 1200);
+      result.act(() => ref.current?.reportScrollEvent({} as any));
+      expect(onChangeStickyIndex).toHaveBeenNthCalledWith(3, -1, 29);
+
+      expect(onChangeStickyIndex).toHaveBeenCalledTimes(3);
+    });
+
+    it("should not invoke the callback when the sticky index stays the same", () => {
+      const onChangeStickyIndex = jest.fn();
+      const ref = createRef<StickyFooterRef>();
+      const manager = createMockRecyclerViewManager({
+        scrollOffset: 0,
+        layouts: createStandardLayouts(),
+      });
+
+      const result = renderStickyFooters({ manager, ref, onChangeStickyIndex });
+      onChangeStickyIndex.mockClear();
+
+      manager.getLastScrollOffset = jest.fn(() => 50);
+      result.act(() => ref.current?.reportScrollEvent({} as any));
+
+      expect(onChangeStickyIndex).not.toHaveBeenCalled();
+    });
+  });
+
   describe("Push Animation Calculation", () => {
     it("should start the push when the previous footer reaches the sticky area", () => {
       const scrollY = new Animated.Value(0);
@@ -318,6 +369,33 @@ describe("StickyFooters - Compute Function", () => {
           bottom: 44,
           position: "absolute",
         }),
+      });
+    });
+
+    it("should render the sticky footer with configured zIndex", () => {
+      const manager = createMockRecyclerViewManager({
+        scrollOffset: 0,
+        layouts: createStandardLayouts(),
+      });
+
+      const result = renderStickyFooters({ manager, stickyFooterZIndex: 7 });
+
+      expect(result.find(Animated.View)).toHaveReactProps({
+        style: expect.objectContaining({ zIndex: 7 }),
+      });
+    });
+
+    it("should pass inverted to the sticky footer view holder", () => {
+      const manager = createMockRecyclerViewManager({
+        scrollOffset: 0,
+        layouts: createStandardLayouts(),
+      });
+
+      const result = renderStickyFooters({ manager, inverted: true });
+
+      expect(result).toContainReactComponent(ViewHolder, {
+        index: 9,
+        inverted: true,
       });
     });
 

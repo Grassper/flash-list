@@ -1,4 +1,10 @@
-import React, { forwardRef, ForwardedRef, useState, useCallback } from "react";
+import React, {
+  forwardRef,
+  ForwardedRef,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import { Text, View, Switch, StyleSheet } from "react-native";
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 
@@ -52,6 +58,11 @@ const ItemSeparator = () => {
 export const StickyFooterExample = forwardRef(
   (_: unknown, ref: ForwardedRef<unknown>) => {
     const [stickyFootersEnabled, setStickyFootersEnabled] = useState(false);
+    const [withStickyFooterOffset, setWithStickyFooterOffset] = useState(false);
+    const [withStickyFooterBackground, setWithStickyFooterBackground] =
+      useState(false);
+    const [hideRelatedCell, setHideRelatedCell] = useState(false);
+    const [inverted, setInverted] = useState(false);
 
     // Memoize the renderItem function
     const renderItem = useCallback(
@@ -63,14 +74,44 @@ export const StickyFooterExample = forwardRef(
       []
     );
 
+    const stickyFooterConfig = useMemo(
+      () => ({
+        offset: withStickyFooterOffset ? 44 : 0,
+        backdropComponent: withStickyFooterBackground ? (
+          <View style={styles.stickyFooterBackground} />
+        ) : undefined,
+        hideRelatedCell,
+      }),
+      [withStickyFooterOffset, withStickyFooterBackground, hideRelatedCell]
+    );
+
     return (
-      <View style={styles.container} key={`${stickyFootersEnabled}`}>
+      <View
+        style={styles.container}
+        key={`${stickyFootersEnabled}-${withStickyFooterOffset}-${withStickyFooterBackground}-${hideRelatedCell}-${inverted}`}
+      >
         <View>
           <Toggle
             label="Enable Sticky Footers"
             value={stickyFootersEnabled}
             onChange={setStickyFootersEnabled}
           />
+          <Toggle
+            label="Sticky Footer Offset"
+            value={withStickyFooterOffset}
+            onChange={setWithStickyFooterOffset}
+          />
+          <Toggle
+            label="Sticky Footer Background"
+            value={withStickyFooterBackground}
+            onChange={setWithStickyFooterBackground}
+          />
+          <Toggle
+            label="Hide Related Cell"
+            value={hideRelatedCell}
+            onChange={setHideRelatedCell}
+          />
+          <Toggle label="Inverted" value={inverted} onChange={setInverted} />
         </View>
         <View style={styles.listContainer}>
           <FlashList
@@ -81,6 +122,8 @@ export const StickyFooterExample = forwardRef(
             stickyFooterIndices={
               stickyFootersEnabled ? footerIndices : undefined
             }
+            stickyFooterConfig={stickyFooterConfig}
+            inverted={inverted}
             ItemSeparatorComponent={ItemSeparator}
           />
         </View>
@@ -107,6 +150,10 @@ const styles = StyleSheet.create({
     margin: 16,
     overflow: "hidden",
     flex: 1,
+  },
+  stickyFooterBackground: {
+    height: 44,
+    backgroundColor: "#40C4FF4C",
   },
   itemSeparator: {
     height: 1,
