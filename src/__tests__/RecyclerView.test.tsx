@@ -195,6 +195,41 @@ describe("RecyclerView", () => {
       expect(result).toContainReactComponent(Backdrop);
     });
 
+    it("pins the same index to the bottom before it and to the top after it", () => {
+      const onChangeStickyIndex = jest.fn();
+      const onChangeStickyFooterIndex = jest.fn();
+      const result = renderWithStickyFooters({
+        stickyHeaderIndices: [9],
+        stickyFooterIndices: [9],
+        onChangeStickyIndex,
+        onChangeStickyFooterIndex,
+      });
+      const findStickyCopy = (target: string) =>
+        result.findWhere(
+          (node: any) => node.props.target === target && node.props.index === 9
+        );
+
+      // Item 9 (y=900-1000) is below the visible area: pinned to the bottom
+      scrollTo(result, 50);
+      expect(onChangeStickyFooterIndex).toHaveBeenLastCalledWith(9, -1);
+      expect(findStickyCopy("StickyFooter")).not.toBeNull();
+      expect(findStickyCopy("StickyHeader")).toBeNull();
+
+      // Item 9 is fully visible: not pinned anywhere
+      scrollTo(result, 500);
+      expect(onChangeStickyFooterIndex).toHaveBeenLastCalledWith(-1, 9);
+      expect(onChangeStickyIndex).not.toHaveBeenCalled();
+      expect(findStickyCopy("StickyFooter")).toBeNull();
+      expect(findStickyCopy("StickyHeader")).toBeNull();
+
+      // Item 9 has scrolled past the top: pinned to the top
+      scrollTo(result, 950);
+      expect(onChangeStickyIndex).toHaveBeenLastCalledWith(9, -1);
+      expect(onChangeStickyFooterIndex).toHaveBeenCalledTimes(2);
+      expect(findStickyCopy("StickyHeader")).not.toBeNull();
+      expect(findStickyCopy("StickyFooter")).toBeNull();
+    });
+
     it("uses the native driver only when headers and footers both allow it", () => {
       const eventSpy = jest.spyOn(Animated, "event");
 
